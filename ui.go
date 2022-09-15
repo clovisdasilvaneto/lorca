@@ -18,6 +18,7 @@ type UI interface {
 	Eval(js string) Value
 	Done() <-chan struct{}
 	Close() error
+	GetBrowser() *chrome
 }
 
 type ui struct {
@@ -49,7 +50,6 @@ var defaultChromeArgs = []string{
 	"--no-first-run",
 	"--no-default-browser-check",
 	"--safebrowsing-disable-auto-update",
-	"--enable-automation",
 	"--password-store=basic",
 	"--use-mock-keychain",
 }
@@ -88,7 +88,12 @@ func New(url, dir string, width, height int, customArgs ...string) (UI, error) {
 		chrome.cmd.Wait()
 		close(done)
 	}()
+
 	return &ui{chrome: chrome, done: done, tmpDir: tmpDir}, nil
+}
+
+func (u *ui) GetBrowser() *chrome {
+	return u.chrome
 }
 
 func (u *ui) Done() <-chan struct{} {

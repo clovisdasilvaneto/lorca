@@ -103,7 +103,7 @@ func newChromeWithArgs(chromeBinary string, args ...string) (*chrome, error) {
 		"Performance.enable":   nil,
 		"Log.enable":           nil,
 	} {
-		if _, err := c.send(method, args); err != nil {
+		if _, err := c.Send(method, args); err != nil {
 			c.kill()
 			c.cmd.Wait()
 			return nil, err
@@ -206,7 +206,7 @@ type windowTargetMessage struct {
 
 func (c *chrome) getWindowForTarget(target string) (windowTargetMessage, error) {
 	var m windowTargetMessage
-	msg, err := c.send("Browser.getWindowForTarget", h{"targetId": target})
+	msg, err := c.Send("Browser.getWindowForTarget", h{"targetId": target})
 	if err != nil {
 		return m, err
 	}
@@ -302,7 +302,7 @@ func (c *chrome) readLoop() {
 							window['%[1]s']['callbacks'].delete(%[2]d);
 							window['%[1]s']['errors'].delete(%[2]d);
 							`, payload.Name, payload.Seq, result, error)
-						c.send("Runtime.evaluate", h{"expression": expr, "contextId": res.Params.ID})
+						c.Send("Runtime.evaluate", h{"expression": expr, "contextId": res.Params.ID})
 					}()
 				}
 				continue
@@ -343,7 +343,7 @@ func (c *chrome) readLoop() {
 	}
 }
 
-func (c *chrome) send(method string, params h) (json.RawMessage, error) {
+func (c *chrome) Send(method string, params h) (json.RawMessage, error) {
 	id := atomic.AddInt32(&c.id, 1)
 	b, err := json.Marshal(h{"id": int(id), "method": method, "params": params})
 	if err != nil {
@@ -366,12 +366,12 @@ func (c *chrome) send(method string, params h) (json.RawMessage, error) {
 }
 
 func (c *chrome) load(url string) error {
-	_, err := c.send("Page.navigate", h{"url": url})
+	_, err := c.Send("Page.navigate", h{"url": url})
 	return err
 }
 
 func (c *chrome) eval(expr string) (json.RawMessage, error) {
-	return c.send("Runtime.evaluate", h{"expression": expr, "awaitPromise": true, "returnByValue": true})
+	return c.Send("Runtime.evaluate", h{"expression": expr, "awaitPromise": true, "returnByValue": true})
 }
 
 func (c *chrome) bind(name string, f bindingFunc) error {
@@ -388,7 +388,7 @@ func (c *chrome) bind(name string, f bindingFunc) error {
 		return nil
 	}
 
-	if _, err := c.send("Runtime.addBinding", h{"name": name}); err != nil {
+	if _, err := c.Send("Runtime.addBinding", h{"name": name}); err != nil {
 		return err
 	}
 	script := fmt.Sprintf(`(() => {
@@ -416,7 +416,7 @@ func (c *chrome) bind(name string, f bindingFunc) error {
 		return promise;
 	}})();
 	`, name)
-	_, err := c.send("Page.addScriptToEvaluateOnNewDocument", h{"source": script})
+	_, err := c.Send("Page.addScriptToEvaluateOnNewDocument", h{"source": script})
 	if err != nil {
 		return err
 	}
@@ -432,12 +432,12 @@ func (c *chrome) setBounds(b Bounds) error {
 	if b.WindowState != WindowStateNormal {
 		param["bounds"] = h{"windowState": b.WindowState}
 	}
-	_, err := c.send("Browser.setWindowBounds", param)
+	_, err := c.Send("Browser.setWindowBounds", param)
 	return err
 }
 
 func (c *chrome) bounds() (Bounds, error) {
-	result, err := c.send("Browser.getWindowBounds", h{"windowId": c.window})
+	result, err := c.Send("Browser.getWindowBounds", h{"windowId": c.window})
 	if err != nil {
 		return Bounds{}, err
 	}
@@ -449,7 +449,7 @@ func (c *chrome) bounds() (Bounds, error) {
 }
 
 func (c *chrome) pdf(width, height int) ([]byte, error) {
-	result, err := c.send("Page.printToPDF", h{
+	result, err := c.Send("Page.printToPDF", h{
 		"paperWidth":  float32(width) / 96,
 		"paperHeight": float32(height) / 96,
 	})
@@ -477,7 +477,7 @@ func (c *chrome) png(x, y, width, height int, bg uint32, scale float32) ([]byte,
 		x, y, width, height = rect[0], rect[1], rect[2], rect[3]
 	}
 
-	_, err := c.send("Emulation.setDefaultBackgroundColorOverride", h{
+	_, err := c.Send("Emulation.setDefaultBackgroundColorOverride", h{
 		"color": h{
 			"r": (bg >> 16) & 0xff,
 			"g": (bg >> 8) & 0xff,
@@ -488,7 +488,7 @@ func (c *chrome) png(x, y, width, height int, bg uint32, scale float32) ([]byte,
 	if err != nil {
 		return nil, err
 	}
-	result, err := c.send("Page.captureScreenshot", h{
+	result, err := c.Send("Page.captureScreenshot", h{
 		"clip": h{
 			"x": x, "y": y, "width": width, "height": height, "scale": scale,
 		},

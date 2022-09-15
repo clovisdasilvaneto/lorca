@@ -1,7 +1,8 @@
+//go:generate go run -tags generate gen.go
+
 package main
 
 import (
-	"embed"
 	"fmt"
 	"log"
 	"net"
@@ -13,9 +14,6 @@ import (
 
 	"github.com/zserge/lorca"
 )
-
-//go:embed www
-var fs embed.FS
 
 // Go types that are bound to the UI must be thread-safe, because each binding
 // is executed in its own goroutine. In this simple case we may use atomic
@@ -67,8 +65,8 @@ func main() {
 		log.Fatal(err)
 	}
 	defer ln.Close()
-	go http.Serve(ln, http.FileServer(http.FS(fs)))
-	ui.Load(fmt.Sprintf("http://%s/www", ln.Addr()))
+	go http.Serve(ln, http.FileServer(FS))
+	ui.Load(fmt.Sprintf("http://%s", ln.Addr()))
 
 	// You may use console.log to debug your JS code, it will be printed via
 	// log.Println(). Also exceptions are printed in a similar manner.
